@@ -34,6 +34,10 @@
     #container {
       text-align: center;
       max-width: min(100%, 600px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
     }
 
     #title {
@@ -55,7 +59,7 @@
       font-weight: bold;
     }
 
-    .start {
+    #start {
       font-size: 22px;
       padding: 12px 24px;
       background-color: #00d9ff;
@@ -64,9 +68,10 @@
       border-radius: 8px;
       cursor: pointer;
       transition: background-color 0.2s ease-in-out;
+      display: block;
     }
 
-    .start:hover {
+    #start:hover {
       background-color: #121212;
       color: #00d9ff;
       border: 2px solid;
@@ -84,7 +89,7 @@
       Press <span class="highlight">Enter</span> to select tiles<br>
       Press <span class="highlight">H</span> to get a hint
     </div>
-    <button class="start" onclick="startGame()">
+    <button id="start" onclick="startGame()">
       [ENTER] to Play
     </button>
   </div>
@@ -99,6 +104,7 @@
     const container = document.getElementById("container");
     const title = document.getElementById('title');
     const instructions = document.getElementById('instructions');
+    const start = document.getElementById('start');
                         
 
     let rows = 16;
@@ -355,8 +361,9 @@
     }
 
     function endGame() {
-      ctx.clearRect(0, 0, width, height);
-      instructions.textContent = 'END GAME\nPress ENTER to play again';
+      canvas.style.display = "none";
+      title.textContent = 'END GAME';
+      container.style.display = 'flex';
       gameState = 'login';
       selectedTiles = [];
     }
@@ -371,7 +378,7 @@
       startTimer();
       drawTiles();
       canvas.style.display = "block";
-      container.style.display = "none"
+      container.style.display = "none";
     }
 
     
@@ -388,12 +395,17 @@
             if (score >= 30) {
               score -= 30;
             } else {
-              instructions.textContent = 'Not enough points to buy hint';
-              instructions.style.backgroundColor = 'blue';
+              title.textContent = "Not enough point to buy hint";
+              start.style.display = "none";
+              instructions.style.display = "none";
+              canvas.style.display="none";
+              container.style.display="flex";
               setTimeout(() => {
-                instructions.textContent = '';
-                instructions.style.backgroundColor = 'transparent';
-              }, 800);
+                container.style.display="none";
+                start.style.display="block";
+                canvas.style.display="block";
+                
+              }, 700);
               break;
             }
             const result = existsValidMove();
@@ -432,9 +444,9 @@
                       if (tiles.every(t => t.hidden)) {
                         clearInterval(timerInterval);
                         canvas.style.display = "none";
-                        container.style.display = "block";
                         title.textContent = '🎉 YOU WIN! 🎉 ';
-                        instructions.textContent = '';
+                        instructions.style.display = "none"; 
+                        container.style.display = "flex";
                         lv++;
                         gameState = 'login';
                         ctx.clearRect(0, 0, width, height);
