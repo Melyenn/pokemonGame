@@ -362,6 +362,7 @@
       });
 
       if (gameState === 'playing') {
+        hintTiles = [];
         ctx.strokeStyle = 'red';
         ctx.lineWidth = 5;
         ctx.strokeRect(
@@ -373,6 +374,7 @@
       }
 
       selectedTiles.forEach(tile => {
+        hintTiles = [];
         ctx.strokeStyle = 'blue';
         ctx.lineWidth = 5;
         ctx.strokeRect(tile.x + 4, tile.y + 4, tileSize - 8, tileSize - 8);
@@ -492,7 +494,7 @@
           setTimeout(() => {
             hintTiles = [];
             drawTiles();
-          }, 5000);
+          }, 10000);
         }
       }
     }
