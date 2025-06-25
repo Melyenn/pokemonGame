@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pikachu Game</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #000;
+      overflow: hidden;
+      color: #f2f2f2;
+    }
+
+    canvas {
+      width: 100%;
+      max-width: 1000px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      display: none;
+    }
+
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: #fff;
+    }
+
+    #container {
+      text-align: center;
+      max-width: min(100%, 600px);
+    }
+
+    #title {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 30px;
+      color: #ffcb05;
+      text-shadow: 2px 2px #2a2a2a;
+    }
+
+    #instructions {
+      font-size: 20px;
+      line-height: 1.8;
+      margin-bottom: 30px;
+    }
+
+    .highlight {
+      color: #00d9ff;
+      font-weight: bold;
+    }
+
+    .start {
+      font-size: 22px;
+      padding: 12px 24px;
+      background-color: #00d9ff;
+      color: #121212;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s ease-in-out;
+    }
+
+    .start:hover {
+      background-color: #121212;
+      color: #00d9ff;
+      border: 2px solid;
+      border-color: #00d9ff;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="info">Level: 1 | Score: 0</div>
+  <div id="container">
+    <div id="title">🧩 Match 2 Same Pokémon</div>
+    <div id="instructions">
+      Use <span class="highlight">Arrow Keys</span> to move<br>
+      Press <span class="highlight">Enter</span> to select tiles<br>
+      Press <span class="highlight">H</span> to get a hint
+    </div>
+    <button class="start" onclick="startGame()">
+      [ENTER] to Play
+    </button>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.imageSmoothingEnabled = false;
+    const info = document.getElementById("info");
+    const container = document.getElementById("container");
+    const title = document.getElementById('title');
+    const instructions = document.getElementById('instructions');
+                        
+
+    let rows = 16;
+    let cols = 9;
+    let tileSize;
+    let width;
+    let height;
+
+    const imageCache = {};
+
+    function resizeCanvas() {
+      height = canvas.height = window.innerHeight * 0.8;
+      tileSize = Math.floor(height / rows);
+      width = canvas.width = tileSize * cols;
+      canvas.style.maxWidth = `${width}px`;
+      canvas.style.maxHeight = `${height}px`;
+    }
+
+    let tiles = [];
+    let selectedTiles = [];
+    let hintTiles = [];
+    let selectedPos = { x: 0, y: 0 };
+    let lv = 1;
+    let score = 0;
+    let gameState = "login";
+    let timeLeft = 60;
+    let timerInterval;
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    function initTiles() {
+      tiles = [];
+      const icons = [
+        'img/0.png',
+        'img/1.png',
+        'img/2.png',
+        'img/3.png',
+        'img/4.png',
+        'img/5.png',
+        'img/6.png',
+        'img/7.png',
+        'img/8.png',
+        'img/9.png',
+        'img/10.png',
+        'img/11.png',
+        'img/12.png',
+        'img/13.png',
+        'img/14.png',
+        'img/15.png',
+        'img/16.png',
+        'img/17.png',
+        'img/18.png',
+        'img/19.png',
+        'img/20.png',
+      ];
+      const pairs = [];
+      const totalTiles = cols * rows;
+
+      if (totalTiles % 2 !== 0) {
+        alert("Total number of tiles must be even!");
+        return;
+      }
+
+      let len = lv * 4;
+      if (len > icons.length) len = icons.length;
+      for (let i = 0; i < totalTiles / 2; i++) {
+        const icon = icons[Math.floor(Math.random() * len)];
+        pairs.push(icon, icon);
+      }
+
+      shuffleArray(pairs);
+
+      for (let i = 0; i < totalTiles; i++) {
+        const x = i % cols;
+        const y = Math.floor(i / cols);
+        tiles.push({
+          icon: pairs[i],
+          x: x * tileSize,
+          y: y * tileSize,
+          hidden: false
+        });
+      }
+    }
+
+    function getGrid() {
+      const grid = Array.from({ length: rows + 2 }, () => Array(cols + 2).fill(0));
+      tiles.forEach((tile, i) => {
+        const x = i % cols;
+        const y = Math.floor(i / cols);
+        if (!tile.hidden) grid[y + 1][x + 1] = 1;
+      });
+      return grid;
+    }
+
+    function canConnect(tile1, tile2) {
+      const grid = getGrid();
+      const startX = Math.round(tile1.x / tileSize) + 1;
+      const startY = Math.round(tile1.y / tileSize) + 1;
+      const endX = Math.round(tile2.x / tileSize) + 1;
+      const endY = Math.round(tile2.y / tileSize) + 1;
+      const queue = [];
+      const visited = new Set();
+      const dirs = [
+        { dx: 0, dy: -1 }, { dx: 1, dy: 0 },
+        { dx: 0, dy: 1 }, { dx: -1, dy: 0 }
+      ];
+
+      for (let d = 0; d < 4; d++) {
+        const nx = startX + dirs[d].dx;
+        const ny = startY + dirs[d].dy;
+        if (grid[ny][nx] === 0 || (nx === endX && ny === endY)) {
+          queue.push({ x: nx, y: ny, dir: d, turns: 0, path: [{ x: startX, y: startY }, { x: nx, y: ny }] });
+          visited.add(`${nx},${ny},${d}`);
+        }
+      }
+
+      while (queue.length > 0) {
+        const { x, y, dir, turns, path } = queue.shift();
+        if (turns > 2) continue;
+        if (x === endX && y === endY) return path;
+
+        for (let d = 0; d < 4; d++) {
+          const nx = x + dirs[d].dx;
+          const ny = y + dirs[d].dy;
+          const newTurns = d === dir ? turns : turns + 1;
+          const key = `${nx},${ny},${d}`;
+          if (grid[ny]?.[nx] === 0 || (nx === endX && ny === endY)) {
+              queue.push({ x: nx, y: ny, dir: d, turns: newTurns, path: [...path, { x: nx, y: ny }] });
+              visited.add(key);
+          }
+        }
+      }
+      return null;
+    }
+
+    function existsValidMove() {
+      const available = tiles.filter(t => !t.hidden);
+      for (let i = 0; i < available.length; i++) {
+        for (let j = i + 1; j < available.length; j++) {
+          if (available[i].icon === available[j].icon && canConnect(available[i], available[j])) {
+            return { a: available[i], b: available[j] };
+          }
+        }
+      }
+      return null;
+    }
+
+    function shuffleUntilValid() {
+      if (existsValidMove()) return;
+      let icons = tiles.filter(t => !t.hidden).map(t => t.icon);
+      do {
+        shuffleArray(icons);
+        let k = 0;
+        tiles.forEach(t => {
+          if (!t.hidden) t.icon = icons[k++];
+        });
+      } while (!existsValidMove());
+    }
+
+    function drawPath(path) {
+      ctx.strokeStyle = 'lime';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      path.forEach((p, i) => {
+        const px = (p.x - 1 + 0.5) * tileSize;
+        const py = (p.y - 1 + 0.5) * tileSize;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+    }
+
+    function drawTiles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.imageSmoothingEnabled=false;
+     
+      tiles.forEach(tile => {
+        if (tile.hidden) return;
+        ctx.fillStyle = '#ffd1dc';
+        ctx.fillRect(tile.x, tile.y, tileSize, tileSize);
+
+        const icon = tile.icon;
+        let img = imageCache[icon];
+
+        if (!img) {
+          const tmp = new Image();
+          tmp.src = icon;
+          tmp.onload = () => {
+            imageCache[icon] = tmp;
+            drawTiles();
+          };
+          tmp.onerror = () => console.error('can not reload', icon);
+          imageCache[icon] = tmp;
+          return;
+        }
+        ctx.drawImage(img, tile.x + tileSize * 0.1, tile.y + tileSize * 0.1, tileSize * 0.8, tileSize * 0.8);
+      });
+
+      if (gameState === 'playing') {
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 5;
+        ctx.strokeRect(
+          selectedPos.x * tileSize + 2,
+          selectedPos.y * tileSize + 2,
+          tileSize - 4,
+          tileSize - 4
+        );
+      }
+
+      selectedTiles.forEach(tile => {
+        ctx.strokeStyle = 'blue';
+        ctx.lineWidth = 5;
+        ctx.strokeRect(tile.x + 4, tile.y + 4, tileSize - 8, tileSize - 8);
+      });
+
+      hintTiles.forEach(tile => {
+        ctx.strokeStyle = 'cyan';
+        ctx.lineWidth = 10;
+        ctx.strokeRect(tile.x + 4, tile.y + 4, tileSize - 8, tileSize - 8);
+      });
+
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      timeLeft = Math.floor(30 * Math.pow(lv, 1.5));
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        info.textContent = `Level: ${lv} | Score: ${score} | Time left: ${timeLeft}s`;
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function endGame() {
+      ctx.clearRect(0, 0, width, height);
+      instructions.textContent = 'END GAME\nPress ENTER to play again';
+      gameState = 'login';
+      selectedTiles = [];
+    }
+
+    function startGame() {
+      gameState = 'rule';
+      rows = lv * 4;
+      cols = lv * 3;
+      resizeCanvas();
+      initTiles();
+      gameState = 'playing';
+      startTimer();
+      drawTiles();
+      canvas.style.display = "block";
+      container.style.display = "none"
+
+    }
+    document.addEventListener('keydown', (e) => {
+      if (gameState === 'login' && e.key === 'Enter') {
+        gameState();
+      } else if (gameState === 'playing') {
+        switch (e.key) {
+          case 'ArrowUp': if (selectedPos.y > 0) selectedPos.y--; break;
+          case 'ArrowDown': if (selectedPos.y < rows - 1) selectedPos.y++; break;
+          case 'ArrowLeft': if (selectedPos.x > 0) selectedPos.x--; break;
+          case 'ArrowRight': if (selectedPos.x < cols - 1) selectedPos.x++; break;
+          case 'H': {
+            if (score >= 30) {
+              score -= 30;
+            } else {
+              instructions.textContent = 'Not enough points to buy hint';
+              instructions.style.backgroundColor = 'blue';
+              setTimeout(() => {
+                instructions.textContent = '';
+                instructions.style.backgroundColor = 'transparent';
+              }, 800);
+              break;
+            }
+            const result = existsValidMove();
+            if (result) {
+              const { a: tile1, b: tile2 } = result;
+              const path = canConnect(tile1, tile2);
+              if (path) {
+                hintTiles = [tile1, tile2];
+                drawTiles();
+                drawPath(path);
+                setTimeout(() => {
+                  hintTiles = [];
+                  drawTiles();
+                }, 1000);
+              }
+            }
+            break;
+          }
+          case 'Enter': {
+            const index = selectedPos.y * cols + selectedPos.x;
+            const tile = tiles[index];
+            if (tile && !tile.hidden && selectedTiles.length < 2 && !selectedTiles.includes(tile)) {
+              selectedTiles.push(tile);
+              if (selectedTiles.length === 2) {
+                const [a, b] = selectedTiles;
+                if (a.icon === b.icon) {
+                  const path = canConnect(a, b);
+                  if (path) {
+                    score += 5 * lv;
+                    a.hidden = true;
+                    b.hidden = true;
+                    drawTiles();
+                    drawPath(path);
+                    setTimeout(() => {
+                      selectedTiles = [];
+                      if (tiles.every(t => t.hidden)) {
+                        clearInterval(timerInterval);
+                        canvas.style.display = "none";
+                        container.style.display = "block";
+                        title.textContent = '🎉 YOU WIN! 🎉 ';
+                        instructions.textContent = '';
+                        lv++;
+                        gameState = 'login';
+                        ctx.clearRect(0, 0, width, height);
+                        return;
+                      }
+                      shuffleUntilValid();
+                      drawTiles();
+                    }, 500);
+                    return;
+                  }
+                }
+                setTimeout(() => {
+                  selectedTiles = [];
+                  drawTiles();
+                }, 500);
+              }
+            }
+            break;
+          }
+        }
+        drawTiles();
+      }
+    });
+  </script>
+</body>
+</html>
+
