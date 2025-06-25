@@ -5,6 +5,9 @@
   <title>Pikachu Game</title>
   <link rel="icon" href="img/0.png" type="image/x-icon" />
   <style>
+    html {
+      font-size: clamp(1rem, 0.8rem + 1vw, 1.5rem);
+    }
     body {
       margin: 0;
       display: flex;
@@ -25,10 +28,19 @@
     }
 
     #info {
+    }
+
+    .nav {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: 1.5rem;
       position: absolute;
       top: 10px;
       left: 10px;
       color: #fff;
+
     }
 
     #container {
@@ -41,7 +53,7 @@
     }
 
     #title {
-      font-size: 32px;
+      font-size: 1.5rem;
       font-weight: bold;
       margin-bottom: 30px;
       color: #ffcb05;
@@ -49,7 +61,7 @@
     }
 
     #instructions {
-      font-size: 20px;
+      font-size: 1.25rem;
       line-height: 1.8;
       margin-bottom: 30px;
     }
@@ -59,9 +71,29 @@
       font-weight: bold;
     }
 
+     #hint {
+      font-size: 1rem;
+      padding: .25rem .75rem;
+      background-color: #00d9ff;
+      color: #121212;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s ease-in-out;
+      display: block;
+    }
+
+    #hint:hover {
+      background-color: #121212;
+      color: #00d9ff;
+      /* border: 2px solid; */
+      border-color: #00d9ff;
+    }
+
+
     #start {
-      font-size: 22px;
-      padding: 12px 24px;
+      font-size: 1.5rem;
+      padding: .5rem 1.5rem;
       background-color: #00d9ff;
       color: #121212;
       border: none;
@@ -74,19 +106,22 @@
     #start:hover {
       background-color: #121212;
       color: #00d9ff;
-      border: 2px solid;
+      /* border: 2px solid; */
       border-color: #00d9ff;
     }
 
   </style>
 </head>
 <body>
-  <div id="info">Level: 1 | Score: 0</div>
+  <div class="nav">
+    <div id="info">Level: 1 | Score: 0 | Time left: 0s</div>
+    <button id="hint" onclick="openHint()">Hint</button>
+  </div>
   <div id="container">
     <div id="title">🧩 Match 2 Same Pokémon</div>
     <div id="instructions">
       Use <span class="highlight">Arrow Keys</span> to move<br>
-      Press <span class="highlight">Enter</span> to select tiles<br>
+      Press <span class="highlight">Enter/ Click/ Touch</span> to select tiles<br>
       Press <span class="highlight">H</span> to get a hint (30point/ hint)
     </div>
     <button id="start" onclick="startGame()">
@@ -294,6 +329,10 @@
         i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
       });
       ctx.stroke();
+      // let duration = 400;
+      // if (duration > 0) {
+      //   setTimeout(drawTiles, duration);
+      // }
     }
 
     function drawTiles() {
@@ -381,8 +420,85 @@
       container.style.display = "none";
     }
 
-    
+     function handleEnter() {
+      const index = selectedPos.y * cols + selectedPos.x;
+      const tile = tiles[index];
+      if (tile && !tile.hidden && selectedTiles.length < 2 && !selectedTiles.includes(tile)) {
+        selectedTiles.push(tile);
+        if (selectedTiles.length === 2) {
+          const [a, b] = selectedTiles;
+          if (a.icon === b.icon) {
+            const path = canConnect(a, b);
+            if (path) {
+              score += 5 * lv;
+              a.hidden = true;
+              b.hidden = true;
+              drawTiles();
+              drawPath(path);
+              setTimeout(() => {
+                selectedTiles = [];
+                if (tiles.every(t => t.hidden)) {
+                  clearInterval(timerInterval);
+                  canvas.style.display = "none";
+                  title.textContent = '🎉 YOU WIN! 🎉 ';
+                  instructions.style.display = "none"; 
+                  container.style.display = "flex";
+                  lv++;
+                  gameState = 'login';
+                  ctx.clearRect(0, 0, width, height);
+                  return;
+                }
+                shuffleUntilValid();
+                drawTiles();
+              }, 500);
+              return true;
+            }
+          }
+          setTimeout(() => {
+            selectedTiles = [];
+            drawTiles();
+          }, 500);
+        }
+      }
+      return false;
+    }
+
+    function openHint() {
+      if (gameState != playing) return;
+      if (score >= 30) {
+        score -= 30;
+      } else {
+        title.textContent = "Not enough point to buy hint";
+        start.style.display = "none";
+        instructions.style.display = "none";
+        canvas.style.display="none";
+        container.style.display="flex";
+        setTimeout(() => {
+          container.style.display="none";
+          start.style.display="block";
+          canvas.style.display="block";
+          
+        }, 700);
+        return; 
+      }
+      const result = existsValidMove();
+      if (result) {
+        const { a: tile1, b: tile2 } = result;
+        const path = canConnect(tile1, tile2);
+        if (path) {
+          hintTiles = [tile1, tile2];
+          drawTiles();
+          drawPath(path);
+          setTimeout(() => {
+            hintTiles = [];
+            drawTiles();
+          }, 800);
+        }
+      }
+    }
+
     document.addEventListener('keydown', (e) => {
+      let drew;
       if (gameState === 'login' && e.key === 'Enter') {
         startGame();
       } else if (gameState === 'playing') {
@@ -392,84 +508,86 @@
           case 'ArrowLeft': if (selectedPos.x > 0) selectedPos.x--; break;
           case 'ArrowRight': if (selectedPos.x < cols - 1) selectedPos.x++; break;
           case 'H': {
-            if (score >= 30) {
-              score -= 30;
-            } else {
-              title.textContent = "Not enough point to buy hint";
-              start.style.display = "none";
-              instructions.style.display = "none";
-              canvas.style.display="none";
-              container.style.display="flex";
-              setTimeout(() => {
-                container.style.display="none";
-                start.style.display="block";
-                canvas.style.display="block";
-                
-              }, 700);
-              break;
-            }
-            const result = existsValidMove();
-            if (result) {
-              const { a: tile1, b: tile2 } = result;
-              const path = canConnect(tile1, tile2);
-              if (path) {
-                hintTiles = [tile1, tile2];
-                drawTiles();
-                drawPath(path);
-                setTimeout(() => {
-                  hintTiles = [];
-                  drawTiles();
-                }, 800);
-              }
-            }
+            // if (score >= 30) {
+            //   score -= 30;
+            // } else {
+            //   title.textContent = "Not enough point to buy hint";
+            //   start.style.display = "none";
+            //   instructions.style.display = "none";
+            //   canvas.style.display="none";
+            //   container.style.display="flex";
+            //   setTimeout(() => {
+            //     container.style.display="none";
+            //     start.style.display="block";
+            //     canvas.style.display="block";
+            //
+            //   }, 700);
+            //   break;
+            // }
+            // const result = existsValidMove();
+            // if (result) {
+            //   const { a: tile1, b: tile2 } = result;
+            //   const path = canConnect(tile1, tile2);
+            //   if (path) {
+            //     hintTiles = [tile1, tile2];
+            //     drawTiles();
+            //     drawPath(path);
+            //     setTimeout(() => {
+            //       hintTiles = [];
+            //       drawTiles();
+            //     }, 800);
+            //   }
+            // }
+            openHint();
             break;
           }
           case 'Enter': {
-            const index = selectedPos.y * cols + selectedPos.x;
-            const tile = tiles[index];
-            if (tile && !tile.hidden && selectedTiles.length < 2 && !selectedTiles.includes(tile)) {
-              selectedTiles.push(tile);
-              if (selectedTiles.length === 2) {
-                const [a, b] = selectedTiles;
-                if (a.icon === b.icon) {
-                  const path = canConnect(a, b);
-                  if (path) {
-                    score += 5 * lv;
-                    a.hidden = true;
-                    b.hidden = true;
-                    drawTiles();
-                    drawPath(path);
-                    setTimeout(() => {
-                      selectedTiles = [];
-                      if (tiles.every(t => t.hidden)) {
-                        clearInterval(timerInterval);
-                        canvas.style.display = "none";
-                        title.textContent = '🎉 YOU WIN! 🎉 ';
-                        instructions.style.display = "none"; 
-                        container.style.display = "flex";
-                        lv++;
-                        gameState = 'login';
-                        ctx.clearRect(0, 0, width, height);
-                        return;
-                      }
-                      shuffleUntilValid();
-                      drawTiles();
-                    }, 500);
-                    return;
-                  }
-                }
-                setTimeout(() => {
-                  selectedTiles = [];
-                  drawTiles();
-                }, 500);
-              }
-            }
+            drew = handleEnter();
             break;
           }
         }
-        drawTiles();
+        if (!drew) drawTiles();
       }
     });
+
+
+    function getGridPos(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: Math.floor((clientX - rect.left) / tileSize),
+        y: Math.floor((clientY - rect.top)  / tileSize),
+      };
+    }
+
+    canvas.addEventListener('click', (e) => {
+      if (gameState !== 'playing') return;
+
+      const pos = getGridPos(e.clientX, e.clientY);
+      if (pos.x < 0 || pos.x >= cols || pos.y < 0 || pos.y >= rows) return;
+
+      selectedPos = pos;   
+      const drewPath = handleEnter();        
+      if (!drewPath) drawTiles();    
+    });
+
+    canvas.style.touchAction = 'none';      
+
+    canvas.addEventListener('touchstart', (e) => {
+      if (gameState !== 'playing') return;
+    
+      e.preventDefault();                    
+    
+      const touch = e.touches[0];            
+      const pos   = getGridPos(touch.clientX, touch.clientY);
+    
+      if (pos.x < 0 || pos.x >= cols || pos.y < 0 || pos.y >= rows) return;
+    
+      selectedPos = pos;
+    
+      const drewPath = handleEnter();        
+      if (!drewPath) drawTiles();            
+    });
+
 
     window.onload = function() {
       icons = [

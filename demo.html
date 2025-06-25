@@ -1,0 +1,83 @@
+/*****************************************************************
+ * 1. Keyboard navigation (giữ nguyên phần bạn đã có)
+ *****************************************************************/
+window.addEventListener('keydown', (e) => {
+  switch (e.key) {
+    case 'ArrowUp':    if (selectedPos.y > 0)        selectedPos.y--; break;
+    case 'ArrowDown':  if (selectedPos.y < rows - 1) selectedPos.y++; break;
+    case 'ArrowLeft':  if (selectedPos.x > 0)        selectedPos.x--; break;
+    case 'ArrowRight': if (selectedPos.x < cols - 1) selectedPos.x++; break;
+    case 'Enter':      handleEnter();                         break;
+  }
+  drawTiles();
+});
+
+/*****************************************************************
+ * 2. Pointer helpers - xác định vị trí ô từ toạ độ con trỏ
+ *****************************************************************/
+function getGridPos(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const x = clientX - rect.left;
+  const y = clientY - rect.top;
+  return {
+    x: Math.floor(x / tileSize),
+    y: Math.floor(y / tileSize),
+  };
+}
+
+/*****************************************************************
+ * 3. Pointer logic: tap ↔ chọn ô | swipe ↔ di chuyển con trỏ
+ *****************************************************************/
+let startX = 0, startY = 0, pointerDown = false;
+
+// Bắt đầu nhấn
+canvas.addEventListener('pointerdown', (e) => {
+  pointerDown = true;
+  startX = e.clientX;
+  startY = e.clientY;
+  // Tránh cuộn khi đang chạm trên thiết bị di động
+  e.preventDefault();
+});
+
+// Kết thúc nhấn/chạm
+canvas.addEventListener('pointerup', (e) => {
+  if (!pointerDown) return;
+  pointerDown = false;
+
+  const dx = e.clientX - startX;
+  const dy = e.clientY - startY;
+  const threshold = 10;                 // < 10 px xem như tap
+
+  /* ---- TAP: chọn ô trực tiếp ---- */
+  if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) {
+    const pos = getGridPos(e.clientX, e.clientY);
+    if (
+      pos.x >= 0 && pos.x < cols &&
+      pos.y >= 0 && pos.y < rows
+    ) {
+      selectedPos = pos;
+      handleEnter();                    // cùng hành vi như phím Enter
+    }
+    drawTiles();
+    return;
+  }
+
+  /* ---- SWIPE: di chuyển con trỏ ---- */
+  if (Math.abs(dx) > Math.abs(dy)) {
+    // horizontal swipe
+    if (dx > 0 && selectedPos.x < cols - 1) selectedPos.x++;
+    else if (dx < 0 && selectedPos.x > 0)   selectedPos.x--;
+  } else {
+    // vertical swipe
+    if (dy > 0 && selectedPos.y < rows - 1) selectedPos.y++;
+    else if (dy < 0 && selectedPos.y > 0)   selectedPos.y--;
+  }
+  drawTiles();
+  e.preventDefault();
+});
+
+/*****************************************************************
+ * 4. (Tuỳ chọn) chặn nhấn giữ để zoom image trên iOS
+ *****************************************************************/
+canvas.style.touchAction = 'none';
+
