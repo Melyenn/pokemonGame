@@ -361,7 +361,7 @@
     }
     document.addEventListener('keydown', (e) => {
       if (gameState === 'login' && e.key === 'Enter') {
-        gameState();
+        gameStart();
       } else if (gameState === 'playing') {
         switch (e.key) {
           case 'ArrowUp': if (selectedPos.y > 0) selectedPos.y--; break;
