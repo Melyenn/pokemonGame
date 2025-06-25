@@ -138,6 +138,7 @@
     let gameState = "login";
     let timeLeft = 60;
     let timerInterval;
+    let icons = [];
 
     function shuffleArray(array) {
       for (let i = array.length - 1; i > 0; i--) {
@@ -148,31 +149,31 @@
 
     function initTiles() {
       tiles = [];
-      const icons = [
-        'img/0.png',
-        'img/1.png',
-        'img/2.png',
-        'img/3.png',
-        'img/4.png',
-        'img/5.png',
-        'img/6.png',
-        'img/7.png',
-        'img/8.png',
-        'img/9.png',
-        'img/10.png',
-        'img/11.png',
-        'img/12.png',
-        'img/13.png',
-        'img/14.png',
-        'img/15.png',
-        'img/16.png',
-        'img/17.png',
-        'img/18.png',
-        'img/19.png',
-        'img/20.png',
-      ];
-
-      preloadIcons(icons);
+      // const icons = [
+      //   'img/0.png',
+      //   'img/1.png',
+      //   'img/2.png',
+      //   'img/3.png',
+      //   'img/4.png',
+      //   'img/5.png',
+      //   'img/6.png',
+      //   'img/7.png',
+      //   'img/8.png',
+      //   'img/9.png',
+      //   'img/10.png',
+      //   'img/11.png',
+      //   'img/12.png',
+      //   'img/13.png',
+      //   'img/14.png',
+      //   'img/15.png',
+      //   'img/16.png',
+      //   'img/17.png',
+      //   'img/18.png',
+      //   'img/19.png',
+      //   'img/20.png',
+      // ];
+      //
+      // preloadIcons(icons);
       const pairs = [];
       const totalTiles = cols * rows;
 
@@ -365,14 +366,15 @@
       rows = lv * 4;
       cols = lv * 3;
       resizeCanvas();
-      initTiles();
+      initTiles(); 
       gameState = 'playing';
       startTimer();
       drawTiles();
       canvas.style.display = "block";
       container.style.display = "none"
-
     }
+
+    
     document.addEventListener('keydown', (e) => {
       if (gameState === 'login' && e.key === 'Enter') {
         startGame();
@@ -405,7 +407,7 @@
                 setTimeout(() => {
                   hintTiles = [];
                   drawTiles();
-                }, 1000);
+                }, 800);
               }
             }
             break;
@@ -456,6 +458,35 @@
         drawTiles();
       }
     });
+
+    window.onload = function() {
+      icons = [
+        'img/0.png',
+        'img/1.png',
+        'img/2.png',
+        'img/3.png',
+        'img/4.png',
+        'img/5.png',
+        'img/6.png',
+        'img/7.png',
+        'img/8.png',
+        'img/9.png',
+        'img/10.png',
+        'img/11.png',
+        'img/12.png',
+        'img/13.png',
+        'img/14.png',
+        'img/15.png',
+        'img/16.png',
+        'img/17.png',
+        'img/18.png',
+        'img/19.png',
+        'img/20.png',
+      ];
+
+      preloadIcons(icons);
+ 
+    }
   </script>
 </body>
 </html>
