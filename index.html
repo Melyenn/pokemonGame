@@ -108,6 +108,18 @@
     let height;
 
     const imageCache = {};
+   
+    
+    function preloadIcons(icons) {
+      icons.forEach(src => {
+        const img = new Image();
+        img.src = src;
+    
+        img.onload = () => {
+          imageCache[src] = img;          
+        };
+      });
+    }
 
     function resizeCanvas() {
       height = canvas.height = window.innerHeight * 0.8;
@@ -159,6 +171,8 @@
         'img/19.png',
         'img/20.png',
       ];
+
+      preloadIcons(icons);
       const pairs = [];
       const totalTiles = cols * rows;
 
