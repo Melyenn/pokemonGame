@@ -464,7 +464,7 @@
     }
 
     function openHint() {
-      if (gameState != playing) return;
+      if (gameState != 'playing') return;
       if (score >= 30) {
         score -= 30;
       } else {
@@ -498,7 +498,7 @@
     }
 
     document.addEventListener('keydown', (e) => {
-      let drew;
+      let drew = false;
       if (gameState === 'login' && e.key === 'Enter') {
         startGame();
       } else if (gameState === 'playing') {
@@ -551,11 +551,26 @@
     });
 
 
+    // function getGridPos(clientX, clientY) {
+    //   const rect = canvas.getBoundingClientRect();
+    //   return {
+    //     x: Math.floor((clientX - rect.left) / tileSize),
+    //     y: Math.floor((clientY - rect.top)  / tileSize),
+    //   };
+    // }
+
     function getGridPos(clientX, clientY) {
-      const rect = canvas.getBoundingClientRect();
+      const rect   = canvas.getBoundingClientRect();   // kích thước hiển thị
+      const scaleX = canvas.width  / rect.width;       // tỉ lệ px nội bộ / px hiển thị
+      const scaleY = canvas.height / rect.height;
+    
+      // Chuyển toạ độ con trỏ → toạ độ nội bộ canvas
+      const cx = (clientX - rect.left) * scaleX;
+      const cy = (clientY - rect.top)  * scaleY;
+    
       return {
-        x: Math.floor((clientX - rect.left) / tileSize),
-        y: Math.floor((clientY - rect.top)  / tileSize),
+        x: Math.floor(cx / tileSize),
+        y: Math.floor(cy / tileSize)
       };
     }
 
