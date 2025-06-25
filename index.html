@@ -492,7 +492,7 @@
           setTimeout(() => {
             hintTiles = [];
             drawTiles();
-          }, 3000);
+          }, 5000);
         }
       }
     }
@@ -508,36 +508,6 @@
           case 'ArrowLeft': if (selectedPos.x > 0) selectedPos.x--; break;
           case 'ArrowRight': if (selectedPos.x < cols - 1) selectedPos.x++; break;
           case 'H': {
-            // if (score >= 30) {
-            //   score -= 30;
-            // } else {
-            //   title.textContent = "Not enough point to buy hint";
-            //   start.style.display = "none";
-            //   instructions.style.display = "none";
-            //   canvas.style.display="none";
-            //   container.style.display="flex";
-            //   setTimeout(() => {
-            //     container.style.display="none";
-            //     start.style.display="block";
-            //     canvas.style.display="block";
-            //
-            //   }, 700);
-            //   break;
-            // }
-            // const result = existsValidMove();
-            // if (result) {
-            //   const { a: tile1, b: tile2 } = result;
-            //   const path = canConnect(tile1, tile2);
-            //   if (path) {
-            //     hintTiles = [tile1, tile2];
-            //     drawTiles();
-            //     drawPath(path);
-            //     setTimeout(() => {
-            //       hintTiles = [];
-            //       drawTiles();
-            //     }, 800);
-            //   }
-            // }
             openHint();
             break;
           }
@@ -550,21 +520,11 @@
       }
     });
 
-
-    // function getGridPos(clientX, clientY) {
-    //   const rect = canvas.getBoundingClientRect();
-    //   return {
-    //     x: Math.floor((clientX - rect.left) / tileSize),
-    //     y: Math.floor((clientY - rect.top)  / tileSize),
-    //   };
-    // }
-
     function getGridPos(clientX, clientY) {
-      const rect   = canvas.getBoundingClientRect();   // kích thước hiển thị
-      const scaleX = canvas.width  / rect.width;       // tỉ lệ px nội bộ / px hiển thị
+      const rect   = canvas.getBoundingClientRect();   
+      const scaleX = canvas.width  / rect.width;       
       const scaleY = canvas.height / rect.height;
     
-      // Chuyển toạ độ con trỏ → toạ độ nội bộ canvas
       const cx = (clientX - rect.left) * scaleX;
       const cy = (clientY - rect.top)  * scaleY;
     
